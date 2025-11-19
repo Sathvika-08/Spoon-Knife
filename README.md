@@ -6,7 +6,8 @@ JDK
 
 Maven
 → Name: Maven_3.9
-→ Let Jenkins auto-install
+→ Let Jenkins auto-install 
+
 
 BUILD PROJECT
 master to main(change)
