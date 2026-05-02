@@ -1,3 +1,14 @@
+SPOON KNIFE
+
+
+
+
+
+
+
+
+
+
 ***WEEK 7:LAMBDA***
 
 Step-by-Step Execution (Follow exactly)
